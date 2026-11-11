@@ -1,0 +1,25 @@
+# Sistema operativo
+Thumbs.db
+Desktop.ini
+.DS_Store
+
+# Editor / IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Paquetes de la extensión (artefactos de publicación)
+*.zip
+*.crx
+*.pem
+
+# Respaldos de vault (¡nunca commitear datos reales!)
+*backup*.json
+*vault*.json
+*export*.json
+
+# Dependencias y builds si algún día se añade tooling
+node_modules/
+dist/

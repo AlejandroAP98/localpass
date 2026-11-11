@@ -1,0 +1,36 @@
+/**
+ * content.css — Estilos inyectados junto al content script.
+ *
+ * Solo contiene el toast in-page. Todo lo demás lo gestiona la página.
+ * Prefijo `lv-` para minimizar choques con CSS del sitio http local
+ * (routers y firmwares a veces meten estilos muy "globales").
+ */
+
+.lv-toast {
+  position: fixed !important;
+  right: 16px !important;
+  bottom: 16px !important;
+  z-index: 2147483647 !important; /* tope de pila: encima de overlays del router/dev */
+  max-width: 340px !important;
+  padding: 10px 14px !important;
+  box-sizing: border-box !important;
+  border-radius: 8px !important;
+  background: #1f2430 !important;
+  color: #e6e9ef !important;
+  border: 1px solid #3a4152 !important;
+  border-left: 3px solid #2da44e !important;
+  font: 13px/1.4 system-ui, -apple-system, Segoe UI, sans-serif !important;
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.35) !important;
+  pointer-events: none !important;
+  animation: lv-fade-in 160ms ease-out;
+}
+
+.lv-toast.lv-out {
+  opacity: 0;
+  transition: opacity 200ms ease-in;
+}
+
+@keyframes lv-fade-in {
+  from { opacity: 0; transform: translateY(6px); }
+  to   { opacity: 1; transform: none; }
+}
