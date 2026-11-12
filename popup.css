@@ -125,13 +125,13 @@ main { padding: 12px 14px 58px; }
 
 /* ================================ listas ================================ */
 
-.list { list-style: none; margin: 0 0 14px; padding: 0; display: grid; gap: 7px; }
+.list { list-style: none; margin: 0 0 14px; padding: 0; display: grid; gap: 6px; }
 
 .row {
   display: flex;
   align-items: center;
   gap: 8px;
-  padding: 10px 12px;
+  padding: 7px 10px;
   background: var(--card);
   border: 1px solid var(--border-soft);
   border-radius: var(--radius-lg);
@@ -146,17 +146,17 @@ main { padding: 12px 14px 58px; }
 
 .row-main { flex: 1; min-width: 0; }
 
-.row-head { display: flex; align-items: center; gap: 9px; margin-bottom: 6px; }
+.row-head { display: flex; align-items: center; gap: 8px; margin-bottom: 4px; }
 
 /* avatar circular: inicial + tinte estable por entrada */
 .avatar {
   display: grid;
   place-items: center;
-  width: 30px;
-  height: 30px;
+  width: 26px;
+  height: 26px;
   flex: none;
-  border-radius: 10px;
-  font-size: 13px;
+  border-radius: 9px;
+  font-size: 12px;
   font-weight: 700;
   color: #0b0e14;
 }
@@ -181,7 +181,7 @@ main { padding: 12px 14px 58px; }
   white-space: nowrap;
 }
 
-.row-pass { display: flex; align-items: center; gap: 2px; padding-left: 39px; }
+.row-pass { display: flex; align-items: center; gap: 2px; padding-left: 34px; }
 .pw-text {
   flex: 1;
   font-family: ui-monospace, "Cascadia Mono", Consolas, monospace;
@@ -441,6 +441,7 @@ code {
 }
 
 .btn.wide { width: 100%; }
+#btn-enable-master { margin-top: 12px; }
 .btn.danger {
   color: var(--danger);
   border-color: color-mix(in srgb, var(--danger) 45%, transparent);
