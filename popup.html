@@ -96,18 +96,19 @@
             </label>
             <button id="btn-disable-master" type="button" class="btn danger">Desactivar cifrado</button>
           </div>
-
-          <!-- Respaldos: exportar/importar JSON ("localpass-backup-1") -->
-          <div class="grid2 io">
-            <button id="btn-export" type="button" class="btn">⬇ Exportar respaldo</button>
-            <button id="btn-import" type="button" class="btn">⬆ Importar respaldo</button>
-          </div>
-          <input id="file-import" type="file" accept="application/json,.json" class="hidden">
-          <label class="lbl">Contraseña del respaldo (solo si está cifrado)
-            <input id="m-import-pass" type="password" placeholder="la maestra de donde se exportó">
-          </label>
-          <div id="io-msg" class="note hidden"></div>
         </div>
+
+        <!-- Respaldos: exportar/importar JSON. Visible SIEMPRE (con o sin maestra):
+             sin maestra el export pide doble-click de confirmación (respaldo plano). -->
+        <div class="grid2 io">
+          <button id="btn-export" type="button" class="btn">⬇ Exportar respaldo</button>
+          <button id="btn-import" type="button" class="btn">⬆ Importar respaldo</button>
+        </div>
+        <input id="file-import" type="file" accept="application/json,.json" class="hidden">
+        <label class="lbl">Contraseña del respaldo (solo si está cifrado)
+          <input id="m-import-pass" type="password" placeholder="la maestra de donde se exportó">
+        </label>
+        <div id="io-msg" class="note hidden"></div>
 
         <label class="check">
           <input id="debug-toggle" type="checkbox">
