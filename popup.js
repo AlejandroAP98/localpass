@@ -40,6 +40,10 @@
   const liveMaster = $('#live-master');
   const masterState = $('#master-state');
   const debugToggle = $('#debug-toggle');
+  // recuperación de entradas cifradas huérfanas (config de maestra perdida)
+  const recoverPanel = $('#recover-vault');
+  const recoverPass = $('#m-recover');
+  const recoverError = $('#recover-error');
 
   // ------------------------------------------------------------------ estado
 
@@ -216,6 +220,13 @@
       listFetched = true;
     }
 
+    // Recuperación: blobs enc:true visibles mientras el popup NO tiene cifrado
+    // activo → la config de maestra no está disponible (perdida/corrupta) y la
+    // única salida es el panel de rescate con la maestra de entonces.
+    const orphanEnc = !security.crypto && allEntries.some((e) => e.encrypted);
+    recoverPanel.classList.toggle('hidden', !orphanEnc);
+    if (!orphanEnc) recoverError.classList.add('hidden');
+
     const siteEntries = currentHost
       ? allEntries.filter((e) => Vault.hostnameKey(e.hostname) === currentHost)
       : [];
@@ -315,6 +326,61 @@
     } else {
       showToast((res && res.error) || 'Contraseña incorrecta');
     }
+  });
+
+  // ------------------------------------------------------------------ recuperación de huérfanas
+
+  function showRecoverError(text) {
+    recoverError.textContent = text;
+    recoverError.classList.remove('hidden');
+  }
+
+  /**
+   * Rescate de entradas enc:true sin config de maestra utilizable. Cada blob
+   * trae su PROPIA salt e iteraciones (encryptEntry), así que la derivación se
+   * hace por blob con Master.decryptWithPassword — igual que la importación de
+   * respaldos. Todo se descifra localmente en el popup: funciona incluso si el
+   * service worker no responde (la causa más probable del estado huérfano).
+   * Política TODO-O-NADA: si un solo blob falla la autenticación AES-GCM, la
+   * contraseña es incorrecta y NO se escribe nada (no dejamos el vault a medias).
+   */
+  $('#btn-recover').addEventListener('click', async () => {
+    const pw = recoverPass.value;
+    if (!pw) { showRecoverError('Introduce la contraseña maestra'); return; }
+
+    const vault = await Vault.load();
+    const orphans = vault.entries.filter((e) => e.secret && e.secret.enc === true);
+    if (!orphans.length) {
+      recoverPanel.classList.add('hidden');
+      return;
+    }
+
+    const plain = [];
+    for (const e of orphans) {
+      const decrypted = await Master.decryptWithPassword(e.secret, pw);
+      if (decrypted === null) {
+        showRecoverError('Contraseña incorrecta: no se descifró ninguna entrada (no se cambió nada)');
+        return;
+      }
+      plain.push(decrypted);
+    }
+
+    orphans.forEach((e, i) => {
+      e.secret = { v: Vault.SCHEMA_VERSION, enc: false, plain: plain[i] };
+    });
+    // Si hubiera una config colgante incompatible, fuera: el vault queda en
+    // estado plaintext consistente y el usuario puede re-activar la maestra
+    // desde el bloque normal "Activar cifrado".
+    delete vault.crypto;
+    await Vault.save(vault);
+
+    recoverPass.value = '';
+    recoverPanel.classList.add('hidden');
+    recoverError.classList.add('hidden');
+    showToast(`Recuperadas ${orphans.length} entradas — ya puedes copiarlas/verlas`);
+    await refreshSecurity();
+    listFetched = false;
+    await refreshLists(true);
   });
 
   // Diagnóstico a demanda: checkbox del bloque Seguridad (paso 3 de la sesión).
@@ -442,11 +508,7 @@
     if (!currentHost) { showToast('Sitio actual no compatible'); return; }
     if (!password && !username) { showToast('Rellena usuario y/o contraseña'); return; }
 
-    if (fId.value) {
-      // --- EDICIÓN: borrar y volver a insertar mantiene el flujo único de upsert,
-      //     preservando la deduplicación por (hostname + username).
-      await Vault.remove(fId.value);
-    }
+    let savedId = null;
 
     if (security.crypto) {
       // Con maestra activa el cifrado del secret lo hace el SW (últle autoridad).
@@ -455,11 +517,22 @@
         data: { hostname: currentHost, username, password },
       });
       if (!res || res.ok !== true || res.locked) {
+        // ANTES de este fix se borraba la entrada original y recién entonces se
+        // intentaba guardar: con el vault bloqueado, la edición destruía datos.
         showToast('Vault bloqueado: no se guardó');
         return;
       }
+      savedId = res.id || null;
     } else {
-      await Vault.upsert({ hostname: currentHost, username, password });
+      const { entry } = await Vault.upsert({ hostname: currentHost, username, password });
+      savedId = entry.id;
+    }
+
+    if (fId.value) {
+      // --- EDICIÓN: borrar solo si el upsert CREÓ una entrada nueva (cambió el
+      //     usuario). Si el dedup por (hostname + username) reutilizó la entrada
+      //     original, savedId === fId.value y borrarla la destruiría.
+      if (fId.value !== savedId) await Vault.remove(fId.value);
     }
 
     showToast(fId.value ? 'Credencial actualizada' : 'Credencial guardada');

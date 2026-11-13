@@ -141,11 +141,14 @@ async function handle(msg) {
         const key = await Master.getSessionKey();
         if (!key) return { ok: true, locked: true };
         // Dedup por (host+usuario) lo hace Vault.upsert; el secreto ya viene cifrado.
-        await Vault.upsert(d, await Master.encryptEntry(key, d.password, cfg));
+        // Devolvemos el id para que el popup sepa si el upsert REUTILIZÓ la
+        // entrada original (edición con mismo host+usuario) o creó una nueva.
+        const saved = await Vault.upsert(d, await Master.encryptEntry(key, d.password, cfg));
+        return { ok: true, id: saved.entry.id };
       } else {
-        await Vault.upsert(d); // vía legacy en texto plano
+        const saved = await Vault.upsert(d); // vía legacy en texto plano
+        return { ok: true, id: saved.entry.id };
       }
-      return { ok: true };
     }
 
     case 'vault:decrypt': {

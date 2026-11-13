@@ -426,12 +426,14 @@
 
     if (await cryptoEnabled()) {
       const res = await sendBgMessage({ type: 'vault:capture', data });
-      if (res && res.ok) {
+      // locked:true llega con ok:true (el SW solo descarta si no hay llave en
+      // sesión): hay que chequear AMBOS o anunciamos un guardado que no ocurrió.
+      if (res && res.ok && !res.locked) {
         showToast(`LocalPass: guardadas credenciales de ${data.username}`);
         // badge lo pinta el SW al recibir 'vault:saved' (o el capture)… el
         // content script solo anuncia; el SW emite badge en el propio capture.
       } else {
-        showToast('LocalPass: almacén bloqueado — no se guardó');
+        showToast('LocalPass: vault bloqueado — desbloquea desde el popup para guardar');
       }
       return;
     }

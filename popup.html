@@ -98,6 +98,19 @@
           </div>
         </div>
 
+        <!-- Recuperación: entradas cifradas (enc:true) cuya config de maestra
+             ya no está utilizable (vault.crypto ausente/corrupto). Cada blob
+             lleva su propia salt/iteraciones → se puede descifrar con la
+             contraseña maestra de entonces sin depender del service worker. -->
+        <div id="recover-vault" class="hidden">
+          <p class="note">⚠ Hay entradas cifradas cuya configuración de desbloqueo se perdió (se muestran como «cifrado: pendiente de fase 2»). Introduce la contraseña maestra con la que se cifraron para recuperarlas.</p>
+          <label class="lbl">Contraseña maestra de aquellas entradas
+            <input id="m-recover" type="password" autocomplete="off" placeholder="maestra anterior">
+          </label>
+          <button id="btn-recover" type="button" class="btn primary wide">Recuperar entradas</button>
+          <div id="recover-error" class="msg warn hidden"></div>
+        </div>
+
         <!-- Respaldos: exportar/importar JSON. Visible SIEMPRE (con o sin maestra):
              sin maestra el export pide doble-click de confirmación (respaldo plano). -->
         <div class="grid2 io">
@@ -198,6 +211,7 @@
   <div id="toast" class="toast hidden"></div>
 
   <script src="vault.js"></script>
+  <script src="masterkey.js"></script>
   <script src="popup.js"></script>
 </body>
 </html>
