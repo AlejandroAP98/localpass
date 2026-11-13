@@ -423,7 +423,8 @@ main.hidden { display: none !important; }
     var(--bg);
 }
 #panel-lock .h { margin-bottom: 12px; }
-#panel-lock form { display: grid; gap: 10px; margin-bottom: 8px; }
+#panel-lock .note { margin: 0; }
+#panel-lock form { display: grid; gap: 12px; margin-top: 12px; margin-bottom: 8px; }
 
 .grid2 { display: grid; gap: 8px; }
 .note {
@@ -449,6 +450,17 @@ code {
 }
 
 .dzone { margin-top: 12px; padding-top: 10px; border-top: 1px solid var(--border-soft); }
+
+/* bloque de recuperación de entradas huérfanas: mismo ritmo que .dzone/.io,
+   con gap uniforme entre nota → input → botón → error */
+#recover-vault {
+  margin-top: 12px;
+  padding-top: 10px;
+  border-top: 1px solid var(--border-soft);
+  display: grid;
+  gap: 10px;
+}
+#recover-error { margin-top: 0; } /* el gap del grid ya separa del botón */
 
 .check {
   display: flex;
