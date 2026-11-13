@@ -580,6 +580,45 @@
     $('#toggle-pass').setAttribute('aria-pressed', String(showing));
   });
 
+  /**
+   * Ojo mostrar/ocultar REUTILIZABLE para todos los campos de llave maestra.
+   * El botón se clona del #toggle-pass existente (mismo SVG y estilo) y cada
+   * input se envuelve en .pw-row como en el formulario de credenciales.
+   * cloneNode NO copia listeners → cada clon recibe el suyo; el id duplicado
+   * se elimina para no romper document.getElementById.
+   */
+  const EYE_INPUT_IDS = [
+    'unlock-pass',   // desbloquear vault
+    'm-pass1',       // activar cifrado
+    'm-pass2',       // activar cifrado (repetir)
+    'm-disable',     // desactivar cifrado
+    'm-recover',     // recuperar entradas huérfanas
+    'm-import-pass', // contraseña del respaldo cifrado
+  ];
+
+  function makeEyeToggle(inputId) {
+    const input = document.getElementById(inputId);
+    if (!input || input.dataset.eyeBound) return;
+    input.dataset.eyeBound = '1'; // idempotente ante re-ejecución
+
+    const row = document.createElement('div');
+    row.className = 'pw-row';
+    input.replaceWith(row);
+    row.append(input);
+
+    const btn = $('#toggle-pass').cloneNode(true);
+    btn.removeAttribute('id');
+    btn.setAttribute('aria-pressed', 'false');
+    btn.setAttribute('aria-label', 'Mostrar u ocultar la contraseña maestra');
+    btn.addEventListener('click', () => {
+      const showing = input.type === 'password';
+      input.type = showing ? 'text' : 'password';
+      btn.setAttribute('aria-pressed', String(showing));
+    });
+    row.append(btn);
+  }
+  EYE_INPUT_IDS.forEach(makeEyeToggle);
+
   search.addEventListener('input', () => renderList(allList, filteredEntries(), true));
 
   /**
