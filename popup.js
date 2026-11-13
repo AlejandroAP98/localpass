@@ -100,21 +100,35 @@
    * es un destino gestionable: http/https + host local/privado (localhost, LAN).
    */
   async function detectCurrentSite() {
-    const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
-    const raw = tab?.url || '';
+    // tabs.query puede rechazar (pestaña sin URL accesible, ventana en
+    // transición): si dejamos que la excepción suba, mata el Promise.all del
+    // arranque y el popup queda SIN render inicial (listas vacías hasta que el
+    // usuario visita "Todas", la única tab que refrescaba). Fallo → ''.
+    let raw = '';
+    try {
+      const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
+      raw = tab?.url || '';
+    } catch { /* sitio no determinable → no compatible */ }
     let host = '';
     let originLabel = raw;
+    let origin = '';
     try {
       const u = new URL(raw);
       if (/^https?:$/.test(u.protocol)) {
         host = u.hostname.toLowerCase();
         originLabel = u.origin;
+        origin = u.origin;
       }
     } catch { /* raw no es una URL parseable */ }
 
     if (host && Vault.isLocalTarget(host)) {
       currentHost = host;
-      currentOrigin = u.origin;
+      // FIX (ReferenceError): `u` vivía DENTRO del try de arriba; usarla aquí
+      // —fuera de su bloque— lanzaba "u is not defined" SIEMPRE que el sitio
+      // era LAN válido. La excepción mataba el Promise.all del arranque → el
+      // render inicial no ocurría y las credenciales solo "cargaban" al
+      // visitar la pestaña "Todas" (la única que refrescaba).
+      currentOrigin = origin;
       originPill.textContent = originLabel;
       originPill.classList.remove('warn');
       originPill.title = '';
@@ -568,7 +582,12 @@
     $('#panel-all').classList.toggle('hidden', isSite);
     $('#tab-site').classList.toggle('active', isSite);
     $('#tab-all').classList.toggle('active', !isSite);
-    if (!isSite) refreshLists();
+    // AMBAS pestañas refrescan. Antes solo "Todas" disparaba refreshLists(): si
+    // el render inicial del arranque salía vacío o desfasado, la pestaña
+    // "Sitio actual" no tenía ningún camino de recuperación. El costo es nulo:
+    // refreshLists() re-renderiza desde caché (y solo fetchea si listFetched
+    // sigue en false, p. ej. tras un boot fallido).
+    refreshLists();
   }
   $('#tab-site').addEventListener('click', () => switchTab('site'));
   $('#tab-all').addEventListener('click', () => switchTab('all'));
@@ -642,10 +661,18 @@
     //  - vault:boot: UN solo despertar del SW que trae estado de seguridad
     //    + entradas ya descifradas (siestá desbloqueado). Antes eran 3 rondas
     //    en serie: status, tabs, list — cada una con su IPC y sliding-TTL.
-    const [boot] = await Promise.all([
-      sendMsg({ type: 'vault:boot' }),
-      detectCurrentSite(),
-    ]);
+    let boot = null;
+    try {
+      const [b] = await Promise.all([
+        sendMsg({ type: 'vault:boot' }),
+        detectCurrentSite(),
+      ]);
+      boot = b;
+    } catch (err) {
+      // Cinturón y tirantes: un fallo aquí NUNCA debe dejar el popup sin
+      // render. Caemos al protocolo antiguo (status + list por separado).
+      console.warn('[LocalPass] vault:boot falló, usando fallback:', err);
+    }
 
     if (boot && boot.ok) {
       security = {
@@ -664,7 +691,15 @@
     applySecurityUi();                // pinta lock screen si corresponde
     if (security.crypto && !security.unlocked) return; // solo lock screen
 
-    await refreshLists();             // no refetch: usa las entradas del boot
+    try {
+      await refreshLists();           // no refetch: usa las entradas del boot
+    } catch (err) {
+      // Última línea de defensa del render inicial: reintento con recarga
+      // forzada. Sin esto, un fallo puntual dejaba ambas listas vacías y la
+      // única salida del usuario era clicar "Todas" (única tab que refrescaba).
+      console.warn('[LocalPass] render inicial falló, reintento forzado:', err);
+      try { await refreshLists(true); } catch { /* sin recuperación posible */ }
+    }
     // focus inicial cómodo y seguro: solo el usuario si estamos en un sitio válido
     if (currentHost) fUser.focus();
   })();
